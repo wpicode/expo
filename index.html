@@ -7,7 +7,7 @@
 
     <title>Exponential-e Tech Challenge</title>
 
-    <link href="bower_components/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <link href="css/dashboard.css" rel="stylesheet">
 
@@ -34,7 +34,11 @@
                 <li><a href="#">Help</a></li>
             </ul>
             <form class="navbar-form navbar-right">
-                <input type="text" class="form-control" placeholder="Search...">
+                <input type="text" class="form-control search" placeholder="Search...">
+                        <select class="form-control" id="search-param">
+                            <option value="supplier" selected="selected">Supplier</option>
+                            <option value="product">Product</option>
+                        </select>
             </form>
         </div>
     </div>
@@ -50,21 +54,21 @@
                     <div class="form-group col-md-6">
                         <label for="selSupplier">Supplier</label>
                         <select class="form-control" id="selSupplier">
-                            <option>xxxx</option>
+                            <option>Select supplier</option>
                         </select>
                     </div>
                     <div class="form-group col-md-6">
                         <label for="selProduct">Product</label>
                         <select class="form-control" id="selProduct">
-                            <option>xxxx</option>
+                            <option>Select product</option>
                         </select>
                     </div>
                 </div>
             </form>
-
+            <div id="test"><ul></ul></div>
             <h2 class="sub-header">Product details</h2>
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table table-striped" id="selected-products">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -74,12 +78,6 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>x</td>
-                            <td>xxxx</td>
-                            <td>xxxx</td>
-                            <td>xxxx</td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -87,7 +85,63 @@
     </div>
 </div>
 
-<script src="bower_components/jquery/dist/jquery.min.js"></script>
-<script src="bower_components/bootstrap/dist/bootstrap.min.js"></script>
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>   
+ <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io();
+      $('.search').keyup(function(){
+        socket.emit('search',[$('#search-param').val(), $(this).val()]);
+        return false;
+      });
+
+      $('#selSupplier').change(function(){
+        socket.emit('search', ['supplier', $(this).val() ] );
+        $('#selected-products').css({'opacity':0.5});
+        return false;
+      });
+      $('#selProduct').change(function(){
+        socket.emit('search', ['product', $(this).val()] );
+        $('#selected-products').css({'opacity':0.5});
+        return false;
+      });
+
+      socket.on('load', function(msg){
+        var suppliers = [], products=[], i=0; //msg = msg.jsonParse();
+
+            console.log(msg);
+         for (key in msg) {
+            var supplier = msg[key]['supplier'];
+            var product = msg[key]['product'];
+            var price = msg[key]['price'];
+           if(suppliers.indexOf(supplier)==-1)
+            { 
+                suppliers.push(supplier);
+                $('#selSupplier').append($('<option value="'+supplier+'">').text(supplier));
+            }
+           if(products.indexOf(product)==-1)
+            { 
+                products.push(product);
+                $('#selProduct').append($('<option value="'+product+'">').text(product));
+            }
+            $('#selected-products tbody').append($('<tr>').html('<td>'+i+'</td><td>'+supplier+'</td><td>'+product+'</td><td>'+price+'</td>'));
+            i++;
+        }
+        console.log(suppliers);
+      });
+
+
+      socket.on('result', function(msg){
+         $('#selected-products tbody').html('');
+
+        $('#selected-products').css('opacity',1);
+         for (key in msg) {
+            var supplier = msg[key]['supplier'];
+            var product = msg[key]['product'];
+            var price = msg[key]['price'];
+            $('#selected-products tbody').append($('<tr>').html('<td>'+key+'</td><td>'+supplier+'</td><td>'+product+'</td><td>'+price+'</td>'));
+        }
+      });
+    </script>
 </body>
 </html>
